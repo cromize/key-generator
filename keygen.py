@@ -14,14 +14,15 @@ from sys import exit
 # key stretching
 def generate_key_password(passwd, salt, iterations, output_key_len):
   from hashlib import sha256
-  rounds = int(output_key_len/256)
-  passwd = b""
+  rounds = output_key_len//256
+  key = b""
   for i in range(rounds or 1):
     salt_i = salt + i.to_bytes(32, 'big')
     for j in range(iterations):
       passwd = hmac.new(passwd, salt_i, digestmod=sha256).digest()
       salt_i = passwd
-  return passwd
+    key += passwd
+  return key
 
 # Python's PRNG
 # size in bytes
@@ -49,7 +50,7 @@ if __name__ == "__main__":
   salt = generate_key_cprng(32)
   print("password:", passwd.decode())
   print("salt:", to_hex(salt))
-  passwd = generate_key_password(passwd, salt, 4096, 256//128)
+  passwd = generate_key_password(passwd, salt, 4096, 256)
   print("key:", to_hex(passwd))
   print("key length:", len(passwd), "bytes")
 
