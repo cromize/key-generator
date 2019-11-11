@@ -18,7 +18,7 @@ def generate_key_password(passwd, salt, iterations, output_key_len):
   key = b""
   for i in range(rounds or 1):
     salt_i = salt + i.to_bytes(32, 'big')
-    for j in range(iterations):
+    for j in range(1, iterations):
       passwd = hmac.new(passwd, salt_i, digestmod=sha256).digest()
       salt_i = passwd
     key += passwd
