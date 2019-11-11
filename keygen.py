@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import base64
 import random
+import secrets
 import binascii
 
 # Tool for generating cryptographic keys
@@ -9,13 +10,12 @@ import binascii
 
 # Python's PRNG
 # size in bytes
-def generate_key_prng(size):
-  return b"".join((bytes([random.randrange(0, 256)]) for x in range(size))) 
+def generate_key_prng(n):
+  return b"".join((bytes([random.randrange(0, 256)]) for x in range(n))) 
 
-# OS random source
-def generate_key_osrng(size):
-  # TODO: 
-  pass
+# Python's module for generating cryptographically strong random numbers
+def generate_key_cprng(n):
+  return secrets.randbits(8*n).to_bytes(n, byteorder='little')
 
 # *** Print Helpers ***
 
@@ -23,15 +23,21 @@ def to_dec(x):
   return " ".join(str(xx) for xx in x)
 
 def to_hex(x):
-  return binascii.hexlify(x)
+  return (b"0x" + binascii.hexlify(x)).decode()
 
 def to_b64(x):
-  return base64.b64encode(x)
+  return (base64.b64encode(x)).decode()
 
 if __name__ == "__main__":
+  print("** PRNG generated key")
   k = generate_key_prng(2*16)
-  print(k)
   print("dec:", to_dec(k))
-  print("hex: 0x%s" % to_hex(k).decode())
-  print("base64:", to_b64(k).decode())
+  print("hex:", to_hex(k))
+  print("base64:", to_b64(k))
+
+  print("\n** CPRNG generated key")
+  k = generate_key_cprng(2*16)
+  print("dec:", to_dec(k))
+  print("hex:", to_hex(k))
+  print("base64:", to_b64(k))
 
