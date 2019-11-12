@@ -10,7 +10,10 @@ from sys import exit
 
 # *** Key Generation ***
 
-def F(passwd, salt, iterations, i):
+# note: argument sizes in bytes
+
+# compute 1 round of PBKDF2
+def round_pbkdf2(passwd, salt, iterations, i):
   from hashlib import sha1, sha256
   u = hmac.new(passwd, salt + i.to_bytes(4, 'big'), digestmod=sha1).digest()
   out = u
@@ -23,15 +26,13 @@ def F(passwd, salt, iterations, i):
 # PBKDF2 (Password-Based Key Derivation Function 2)
 # key stretching
 def generate_key_password(passwd, salt, iterations, output_key_len):
-  from hashlib import sha1, sha256
-  rounds = output_key_len//160
+  rounds = 8*output_key_len//160
   key = b""
-  for i in range(1, rounds+1 if rounds != 0 else 2):
-    key += F(b"eBkXQTfuBqp'cTcar&g*", binascii.unhexlify("A009C1A485912C6AE630D3E744240B04"), iterations, i)
-  return key[:16]
+  for i in range(1, rounds+2 if rounds != 0 else 2):
+    key += round_pbkdf2(passwd, salt, iterations, i)
+  return key[:output_key_len]
 
 # Python's PRNG
-# size in bytes
 def generate_key_prng(n):
   return b"".join((bytes([random.randrange(0, 256)]) for x in range(n))) 
 
@@ -54,21 +55,14 @@ def byte_xor(b1, b2):
   return bytes(a ^ b for a, b in zip(b1, b2))
 
 if __name__ == "__main__":
-  x = generate_key_password(b"eBkXQTfuBqp'cTcar&g*", binascii.unhexlify("A009C1A485912C6AE630D3E744240B04"), 1000, 128)
-  print(to_hex(x))
-  print(len(x))
-  assert x == binascii.unhexlify("17EB4014C8C461C300E9B61518B9A18B")
-  print("PASSED")
-  exit(0)
-
   print("** Password derived key")
   passwd = b"this_is_password"
   salt = generate_key_cprng(32)
   print("password:", passwd.decode())
   print("salt:", to_hex(salt))
-  passwd = generate_key_password(passwd, salt, 4096, 256)
-  print("key:", to_hex(passwd))
-  print("key length:", len(passwd), "bytes")
+  k = generate_key_password(passwd, salt, 4096, 32)
+  print("key:", to_hex(k))
+  print("key length:", len(k), "bytes")
 
   print("\n** PRNG generated key (NOT safe)")
   k = generate_key_prng(2*16)
