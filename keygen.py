@@ -42,7 +42,7 @@ def generate_key_prng(n):
 def generate_key_cprng(n):
   return secrets.randbits(8*n).to_bytes(n, byteorder='little')
 
-# *** Print Helpers ***
+# *** Helpers ***
 
 def to_dec(x):
   return " ".join(str(xx) for xx in x)
@@ -56,21 +56,40 @@ def to_b64(x):
 def byte_xor(b1, b2):
   return bytes(a ^ b for a, b in zip(b1, b2))
 
+def get_choice(msg, choices):
+  choice = ""
+  while choice not in choices:
+    choice = input("%s (%s): " % (msg, ", ".join(choices)))
+    if choice == "": return ""
+  return choice
+
+def get_number(msg, positive_only=True):
+  while 1:
+    x = input(msg)
+    if x == "": return
+    try:
+      num = int(x)
+      if positive_only and num < 0:
+        continue
+      return num
+    except Exception :
+      pass
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
-  parser.add_argument("-s", "--size", metavar="N", default=16, type=int, help="output key size (bytes)")
+  parser.add_argument("-s", "--size", metavar="N", default=0, type=int, help="output key size (bytes)")
   parser.add_argument("-m", "--method", choices=('password', 'prng', 'cprng'), type=str, help="key generation method")
-  parser.add_argument("-p", "--output-format", choices=('dec', 'hex', 'base64', 'all'), default='all', type=str, help="key output format (default all)")
+  parser.add_argument("-p", "--output-format", choices=('dec', 'hex', 'base64', 'all'), default='', type=str, help="key output format (default all)")
   parser.add_argument("--rounds", metavar="N", default=10000, type=int, help="round count for BPKDF2")
   args = parser.parse_args()
 
   # interactive select
   if args.method == None:
-    args.method = input("Select mode (prng, cprng, password): ") or "cprng"
-    if not args.size:
-      args.size = int(input("Select key size (default 16): ") or 16)
-    if not args.output_format:
-      args.output_format = input("Select output format (dec, hex, base64, all): ") or "all"
+    args.method = get_choice("Select mode", ("prng", "cprng", "password")) or "cprng"
+    if args.size == 0:
+      args.size = get_number("Select key size (default 16): ") or 16
+    if args.output_format == "":
+      args.output_format = get_choice("Select output format", ("dec", "hex", "base64", "all")) or "all"
     print()
 
   # generation method
