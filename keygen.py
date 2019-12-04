@@ -17,13 +17,11 @@ from getpass import getpass
 # compute PBKDF2 block
 def block_pbkdf2(passwd, salt, rounds, i):
   from hashlib import sha1, sha256
-  u = hmac.new(passwd, salt + i.to_bytes(4, 'big'), digestmod=sha1).digest()
-  out = u
+  hmac_inner = hmac.new(passwd, salt + i.to_bytes(4, 'big'), digestmod=sha1).digest()
   for j in range(1, rounds):
-    ui = hmac.new(passwd, u, digestmod=sha1).digest()
-    out = byte_xor(ui, out)
-    u = ui
-  return out 
+    hmac_outer = hmac.new(passwd, hmac_inner, digestmod=sha1).digest()
+    hmac_inner = byte_xor(hmac_outer, hmac_inner)
+  return hmac_inner
   
 # PBKDF2 (Password-Based Key Derivation Function 2)
 # key stretching
@@ -63,7 +61,7 @@ def get_choice(msg, choices):
     if choice == "": return ""
   return choice
 
-def get_number(msg, positive_only=True):
+def get_number(msg, positive_only=False):
   while 1:
     x = input(msg)
     if x == "": return
@@ -72,7 +70,7 @@ def get_number(msg, positive_only=True):
       if positive_only and num < 0:
         continue
       return num
-    except Exception :
+    except Exception:
       pass
 
 if __name__ == "__main__":
@@ -83,11 +81,13 @@ if __name__ == "__main__":
   parser.add_argument("--rounds", metavar="N", default=10000, type=int, help="round count for BPKDF2")
   args = parser.parse_args()
 
+  print("Cryptographic key generator\n")
+
   # interactive select
   if args.method == None:
     args.method = get_choice("Select mode", ("prng", "cprng", "password")) or "cprng"
     if args.size == 0:
-      args.size = get_number("Select key size (default 16): ") or 16
+      args.size = get_number("Select key size (default 16): ", True) or 16
     if args.output_format == "":
       args.output_format = get_choice("Select output format", ("dec", "hex", "base64", "all")) or "all"
     print()
